@@ -12,7 +12,7 @@ module.exports = function(config) {
     browsers: ['PhantomJS'],
     browserify: {
       debug: true,
-      bundleDelay: 2000
+      // bundleDelay: 2000
     }
   })
 }
