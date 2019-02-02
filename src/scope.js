@@ -5,6 +5,9 @@ function Scope() {
   this.$$watchers = [];
   this.$$lastDirtyWatch = null;
   this.$$asyncQueue = [];
+  this.$$applyAsyncQueue = [];
+  this.$$applyAsyncId = null;
+  this.$$postDigestQueue = [];
   this.$$phase = null;
 }
 
@@ -69,10 +72,18 @@ Scope.prototype.$digest = function() {
   var dirty;
   this.$$lastDirtyWatch = null;
   this.$beginPhase('$digest');
+  if (this.$$applyAsyncId) {
+    clearTimeout(this.$$applyAsyncId);
+    this.$$flushApplyAsync();
+  }
   do {
     while (this.$$asyncQueue.length) {
-      var asyncTask = this.$$asyncQueue.shift();
-      asyncTask.scope.$eval(asyncTask.expression);
+      try {
+        var asyncTask = this.$$asyncQueue.shift();
+        asyncTask.scope.$eval(asyncTask.expression);
+      } catch (e) {
+        console.error(e);
+      }
     }
 
     dirty = this.$$digestOnce(); 
@@ -82,6 +93,14 @@ Scope.prototype.$digest = function() {
     } 
   } while (dirty || this.$$asyncQueue.length);
   this.$clearPhase();
+
+  while (this.$$postDigestQueue.length) {
+    try {
+      this.$$postDigestQueue.shift()();
+    } catch (e) {
+      console.error(e);
+    }   
+  }
 };
 
 Scope.prototype.$eval = function(expr, locals) {
@@ -119,6 +138,43 @@ Scope.prototype.$beginPhase = function(phase) {
 
 Scope.prototype.$clearPhase = function() {
   this.$$phase = null;
+};
+
+Scope.prototype.$$flushApplyAsync = function() {
+  // Note: We only $apply ONCE for entire queue.
+  while (this.$$applyAsyncQueue.length) {
+    try {
+      this.$$applyAsyncQueue.shift()();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+  this.$$applyAsyncId = null;
+
+};
+
+Scope.prototype.$applyAsync = function (expr) {
+  var self = this;
+  self.$$applyAsyncQueue.push(function() {
+    // runs expr() but does NOT call $digest.
+    self.$eval(expr);
+  });
+  if (self.$$applyAsyncId === null) {
+    self.$$applyAsyncId = setTimeout(function() {
+      // $apply calls $digest().
+      self.$apply(_.bind(self.$$flushApplyAsync, self));
+      // self.$apply(Function.prototype.bind(self.$$flushApplyAsync, self));
+    }, 0);
+    /* 
+      Note:
+      The LoDash _.bind function is equivalent to ECMAScript 5 Function.prototype.bind, 
+      and is used to make sure the this receiver of the function is a known value.
+    */
+  }
+};
+
+Scope.prototype.$$postDigest = function(fn) {
+  this.$$postDigestQueue.push(fn);
 };
 
 module.exports = Scope;
