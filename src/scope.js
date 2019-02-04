@@ -92,6 +92,7 @@ Scope.prototype.$digest = function() {
       throw '10 digest iterations reached';
     } 
   } while (dirty || this.$$asyncQueue.length);
+
   this.$clearPhase();
 
   while (this.$$postDigestQueue.length) {
@@ -162,8 +163,8 @@ Scope.prototype.$applyAsync = function (expr) {
   if (self.$$applyAsyncId === null) {
     self.$$applyAsyncId = setTimeout(function() {
       // $apply calls $digest().
-      self.$apply(_.bind(self.$$flushApplyAsync, self));
-      // self.$apply(Function.prototype.bind(self.$$flushApplyAsync, self));
+      // self.$apply(_.bind(self.$$flushApplyAsync, self));
+      self.$apply(Function.prototype.bind(self.$$flushApplyAsync, self));
     }, 0);
     /* 
       Note:
@@ -176,6 +177,55 @@ Scope.prototype.$applyAsync = function (expr) {
 Scope.prototype.$$postDigest = function(fn) {
   this.$$postDigestQueue.push(fn);
 };
+
+Scope.prototype.$watchGroup = function(watchFns, listenerFn) {
+  var self = this;
+  var newValues = new Array(watchFns.length);
+  var oldValues = new Array(watchFns.length);
+  var changeReactionScheduled = false;
+  var firstRun = true;
+
+  if (watchFns.length === 0) {
+    var shouldCall = true;
+    // Q: Why call evalAsync() here?
+    self.$evalAsync(function() {
+      if (shouldCall) {
+        listenerFn(newValues, newValues, self);
+      };
+    });
+    return function() {
+      shouldCall = false;
+    };
+  }
+
+  function watchGroupListener() {
+    if (firstRun) {
+      firstRun = false;
+      listenerFn(newValues, newValues, self);
+    } else {
+      listenerFn(newValues, oldValues, self);
+    }
+    changeReactionScheduled = false;
+  }
+
+  var destroyFunctions = _.map(watchFns, function(watchFn, i) {
+    return self.$watch(watchFn, function(newValue, oldValue) {
+      newValues[i] = newValue;
+      oldValues[i] = oldValue;
+      if (!changeReactionScheduled) {
+        changeReactionScheduled = true;
+        self.$evalAsync(watchGroupListener);
+      }
+    });
+  });
+  
+  return function() {
+    _.forEach(destroyFunctions, function(destroyFunction) {
+      destroyFunction();
+    });
+  };
+};
+// $watchGroup always uses reference watches for change detection.
 
 module.exports = Scope;
 
