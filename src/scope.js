@@ -9,6 +9,7 @@ function Scope() {
   this.$$applyAsyncId = null;
   this.$$postDigestQueue = [];
   this.$$phase = null;
+  this.$$children = [];
 }
 
 function initWatchVal() { }
@@ -42,27 +43,38 @@ Scope.prototype.$watch = function(watchFn, listenerFn, valueEq) {
 };
 
 Scope.prototype.$$digestOnce = function() {
+  var dirty;
+  var continueLoop = true;
   var self = this;
-  var newValue, oldValue, dirty;
-  _.forEachRight(this.$$watchers, function(watcher) {
-    try {
-      if (watcher) {
-        newValue = watcher.watchFn(self);
-        oldValue = watcher.last;
-        if (!self.$$areEqual(newValue, oldValue, watcher.valueEq)) {
-          self.$$lastDirtyWatch = watcher;
-          watcher.last = (watcher.valueEq ? _.cloneDeep(newValue) : newValue);
-          watcher.listenerFn(newValue,
-            (oldValue === initWatchVal ? newValue : oldValue),
-            self);
-          dirty = true;
-        } else if (self.$$lastDirtyWatch === watcher) {
-          return false; 
+  this.$$everyScope(function(scope) {
+    var newValue, oldValue;
+    _.forEachRight(scope.$$watchers, function(watcher) {
+      // scope.$$watchers is evaluating the topmost scope
+      try {
+        if (watcher) {
+          newValue = watcher.watchFn(scope);
+          oldValue = watcher.last;
+          // scope is the current scope being evaluated.
+          if (!scope.$$areEqual(newValue, oldValue, watcher.valueEq)) {
+            // dirty watcher needs to see all scopes in the hierarchy.
+            // we use 'self' to refer to the topmost scope.
+            self.$$lastDirtyWatch = watcher;
+            watcher.last = (watcher.valueEq ? _.cloneDeep(newValue) : newValue);
+            watcher.listenerFn(newValue,
+              (oldValue === initWatchVal ? newValue : oldValue),
+              scope);
+            dirty = true;
+          } else if (self.$$lastDirtyWatch === watcher) {
+            // self is topmost scope for $$lastDirtyWatch.
+            continueLoop = false;
+            return false; 
+          }
         }
-      }
-    } catch(e) {
-      console.error(e);
-    } 
+      } catch(e) {
+        console.error(e);
+      } 
+    });
+    return continueLoop;
   });
   return dirty;
 };
@@ -191,7 +203,7 @@ Scope.prototype.$watchGroup = function(watchFns, listenerFn) {
     self.$evalAsync(function() {
       if (shouldCall) {
         listenerFn(newValues, newValues, self);
-      };
+      }
     });
     return function() {
       shouldCall = false;
@@ -226,6 +238,27 @@ Scope.prototype.$watchGroup = function(watchFns, listenerFn) {
   };
 };
 // $watchGroup always uses reference watches for change detection.
+
+Scope.prototype.$new = function() {
+  var ChildScope = function() { };
+  ChildScope.prototype = this;
+  var child = new ChildScope();
+  this.$$children.push(child);
+  child.$$watchers = [];
+  child.$$children = [];
+  return child;
+};
+
+
+Scope.prototype.$$everyScope = function(fn) {
+  if (fn(this)) {
+    return this.$$children.every(function(child) {
+      return child.$$everyScope(fn);
+    });
+  } else {
+    return false;
+  }
+};
 
 module.exports = Scope;
 
