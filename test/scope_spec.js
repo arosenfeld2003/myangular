@@ -1140,7 +1140,7 @@ describe('Scope', function() {
       expect(child.didPostDigest).toBe(true);
     });
 
-    it("executes $applyAsync functions on isolated scopes", function() {
+    it('executes $applyAsync functions on isolated scopes', function() {
       var parent = new Scope();
       var child = parent.$new(true);
       var applied = false;
@@ -1151,6 +1151,26 @@ describe('Scope', function() {
 
       child.$digest();
       expect(applied).toBe(true);
+    });
+
+    it('can take some other scope as the parent', function() {
+      var prototypeParent = new Scope();
+      var heirarchyParent = new Scope();
+      var child = prototypeParent.$new(false, heirarchyParent);
+
+      prototypeParent.a = 42;
+      expect(child.a).toBe(42);
+
+      child.counter = 0;
+      child.$watch(function(scope) {
+        scope.counter++;
+      });
+
+      prototypeParent.$digest();
+      expect(child.counter).toBe(0);
+
+      heirarchyParent.$digest();
+      expect(child.counter).toBe(2);
     });
 
   });
