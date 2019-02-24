@@ -1,6 +1,8 @@
 'use strict';
 var _ = require('lodash');
 
+function initWatchVal() { }
+
 function Scope() {
   this.$$watchers = [];
   this.$$lastDirtyWatch = null;
@@ -12,8 +14,6 @@ function Scope() {
   this.$$children = [];
   this.$$phase = null;
 }
-
-function initWatchVal() { }
 
 Scope.prototype.$$areEqual = function(newValue, oldValue, valueEq) {
   if (valueEq) {
@@ -291,16 +291,30 @@ Scope.prototype.$watchCollection = function(watchFn, listenerFn) {
 
   var internalWatchFn = function(scope) {
     newValue = watchFn(scope);
-    if (!self.$$areEqual(newValue, oldValue, false)) {
-      changeCount++;
+
+    if(_.isObject(newValue)) {
+      if(_.isArray(newValue)) {
+          if(!_.isArray(oldValue)) {
+            changeCount++;
+            oldValue = [];
+          }
+        } else {
+
+        }
+      } else {
+        if (!self.$$areEqual(newValue, oldValue, false)) {
+          changeCount++;
+      }
+      // Check for changes.
+      oldValue = newValue;
     }
-    // Check for changes.
-    oldValue = newValue;
     return changeCount;
   };
+
   var internalListenerFn = function() {
     listenerFn(newValue, oldValue, self);
   };
+  
   return this.$watch(internalWatchFn, internalListenerFn);
 };
 
