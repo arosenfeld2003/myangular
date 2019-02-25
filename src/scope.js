@@ -298,6 +298,10 @@ Scope.prototype.$watchCollection = function(watchFn, listenerFn) {
             changeCount++;
             oldValue = [];
           }
+          if (newValue.length !== oldValue.length) {
+            changeCount++;
+            oldValue.length = newValue.length;
+          }
         } else {
 
         }
@@ -314,7 +318,7 @@ Scope.prototype.$watchCollection = function(watchFn, listenerFn) {
   var internalListenerFn = function() {
     listenerFn(newValue, oldValue, self);
   };
-  
+
   return this.$watch(internalWatchFn, internalListenerFn);
 };
 
