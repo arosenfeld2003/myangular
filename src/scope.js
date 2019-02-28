@@ -3,6 +3,7 @@ var _ = require('lodash');
 
 function initWatchVal() { }
 
+// unnecessary?  Use _.isArrayLike or _.isArrayLikeObject.
 function isArrayLike(obj) {
   if(_.isNull(obj) || _.isUndefined(obj)) {
     return false;
@@ -301,28 +302,33 @@ Scope.prototype.$watchCollection = function(watchFn, listenerFn) {
     newValue = watchFn(scope);
 
     if(_.isObject(newValue)) {
-      if(isArrayLike(newValue)) {
-          if(!_.isArray(oldValue)) {
-            changeCount++;
-            oldValue = [];
-          }
-          if (newValue.length !== oldValue.length) {
-            changeCount++;
-            oldValue.length = newValue.length;
-          }
-          _.forEach(newValue, function(newItem, i) {
-            var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i]);
-            if (!bothNaN && newItem !== oldValue[i]) {
-              changeCount++;
-              oldValue[i] = newItem;
-            }
-          })
-        } else {
-
-        }
-      } else {
-        if (!self.$$areEqual(newValue, oldValue, false)) {
+      if (isArrayLike(newValue)) {
+      // if(_.isArrayLikeObject(newValue)) {
+        if(!_.isArray(oldValue)) {
           changeCount++;
+          oldValue = [];
+        }
+        if (newValue.length !== oldValue.length) {
+          changeCount++;
+          oldValue.length = newValue.length;
+        }
+        _.forEach(newValue, function(newItem, i) {
+          var bothNaN = _.isNaN(newItem) && _.isNaN(oldValue[i]);
+          if (!bothNaN && newItem !== oldValue[i]) {
+            changeCount++;
+            oldValue[i] = newItem;
+          }
+        });
+      } else {
+        if (!_.isObject(oldValue) || isArrayLike(oldValue)) {
+        // if (!_.isObject(oldValue) || _.isArrayLike(oldValue)) {
+          changeCount++;
+          oldValue = {};
+        }
+      }
+    } else {
+      if (!self.$$areEqual(newValue, oldValue, false)) {
+        changeCount++;
       }
       // Check for changes.
       oldValue = newValue;

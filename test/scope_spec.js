@@ -1334,7 +1334,7 @@ describe('Scope', function() {
       scope.arr = [2, 1, 3];
       scope.counter = 0;
       scope.$watchCollection(
-        function(scope) { return scope.arr },
+        function(scope) { return scope.arr; },
         function(newValue, oldValue, scope) {
           scope.counter++;
         }
