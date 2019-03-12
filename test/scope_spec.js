@@ -1631,17 +1631,40 @@ describe('Scope', function() {
       expect(isolatedChild.$$listeners).toEqual({someEvent: [listener3]});
     });
 
+<<<<<<< HEAD
     _.forEach(['$emit', '$broadcast'], function(method) {
       it('calls listeners registered for matching events on' + method, function() {
         var listener1 = jasmine.createSpy();
+=======
+    it('calls the listeners of the matching event on $emit', function() {
+      var listener1 = jasmine.createSpy();
+>>>>>>> 0d65c7e49dd1eaf220bce7b330c540df32728a8d
       var listener2 = jasmine.createSpy();
       scope.$on('someEvent', listener1);
       scope.$on('someOtherEvent', listener2);
 
+<<<<<<< HEAD
       scope[method]('someEvent');
       expect(listener1).toHaveBeenCalled();
       expect(listener2).not.toHaveBeenCalled();
       });
+=======
+      scope.$emit('someEvent');
+
+      expect(listener1).toHaveBeenCalled();
+      expect(listener2).not.toHaveBeenCalled();
+    }); 
+
+    it('calls the listeners of the matching event on $broadcast', function() {
+      var listener1 = jasmine.createSpy();
+      var listener2 = jasmine.createSpy();
+      scope.$on('someEvent', listener1);
+      scope.$on('someOtherEvent', listener2);
+
+      scope.$broadcast('someEvent');
+      expect(listener1).toHaveBeenCalled();
+      expect(listener2).not.toHaveBeenCalled();
+>>>>>>> 0d65c7e49dd1eaf220bce7b330c540df32728a8d
     });
 
   });
