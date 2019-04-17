@@ -1679,12 +1679,17 @@ describe('Scope', function() {
         });
 
         it('returns the event object on '+method, function() {
+<<<<<<< HEAD
           var returnedEvent = scope[method]('someEvent');
+=======
+          var returnedEvent =- scope[method]('someEvent');
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
 
           expect(returnedEvent).toBeDefined();
           expect(returnedEvent.name).toEqual('someEvent');
         });
 
+<<<<<<< HEAD
         it('can be deregistered '+method, function() {
           var listener = jasmine.createSpy();
           var deregister = scope.$on('someEvent', listener);
@@ -1711,6 +1716,8 @@ describe('Scope', function() {
 
           expect(nextListener).toHaveBeenCalled();
         });
+=======
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
       });
 
     it('propogates up the scope hierarchy on $emit', function() {

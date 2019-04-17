@@ -399,6 +399,7 @@ Scope.prototype.$on = function(eventName, listener) {
 };
 
 Scope.prototype.$emit = function(eventName) {
+<<<<<<< HEAD
   var event = {name: eventName, targetScope: this};
   var listenerArgs = [event].concat(_.tail(arguments));
   var scope = this;
@@ -421,10 +422,22 @@ Scope.prototype.$broadcast = function(eventName) {
   });
   event.currentScope = null;
   return event;
+=======
+  var additionalArgs = _.tail(arguments);
+  this.$$fireEventOnScope(eventName, additionalArgs);
+  return this.$$fireEventOnScope(eventName, additionalArgs);
+};
+
+Scope.prototype.$broadcast = function(eventName) {
+  var additionalArgs = _.tail(arguments);
+  this.$$fireEventOnScope(eventName, additionalArgs);
+  return this.$$fireEventOnScope(eventName, additionalArgs);
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
 };
 
 Scope.prototype.$$fireEventOnScope = function(eventName, listenerArgs) {
   var listeners = this.$$listeners[eventName] || [];
+<<<<<<< HEAD
   var i = 0;
   while (i < listeners.length) {
     if (listeners[i] === null) {
@@ -435,6 +448,12 @@ Scope.prototype.$$fireEventOnScope = function(eventName, listenerArgs) {
       i++;
     }
   }
+=======
+  _.forEach(listeners, function(listener) {
+    listener.apply(null, listenerArgs);
+  });
+  return event;
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
 };
 
 module.exports = Scope;
