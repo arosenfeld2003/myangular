@@ -390,21 +390,70 @@ Scope.prototype.$on = function(eventName, listener) {
     this.$$listeners[eventName] = listeners = [];
   }
   listeners.push(listener);
+  return function() {
+    var index = listeners.indexOf(listener);
+    if (index >= 0) {
+      listeners[index] = null;
+    }
+  };
 };
 
 Scope.prototype.$emit = function(eventName) {
-  this.$$fireEventOnScope(eventName);
+<<<<<<< HEAD
+  var event = {name: eventName, targetScope: this};
+  var listenerArgs = [event].concat(_.tail(arguments));
+  var scope = this;
+  do {
+    event.currentScope = scope;
+    scope.$$fireEventOnScope(eventName, listenerArgs);
+    scope = scope.$parent;
+  } while (scope);
+  event.currentScope = null;
+  return event;
 };
 
 Scope.prototype.$broadcast = function(eventName) {
- this.$$fireEventOnScope(eventName);
+  var event = {name: eventName, targetScope: this};
+  var listenerArgs = [event].concat(_.tail(arguments));
+  this.$$everyScope(function(scope) {
+    event.currentScope = scope;
+    scope.$$fireEventOnScope(eventName, listenerArgs);
+    return true;
+  });
+  event.currentScope = null;
+  return event;
+=======
+  var additionalArgs = _.tail(arguments);
+  this.$$fireEventOnScope(eventName, additionalArgs);
+  return this.$$fireEventOnScope(eventName, additionalArgs);
 };
 
-Scope.prototype.$$fireEventOnScope = function(eventName) {
+Scope.prototype.$broadcast = function(eventName) {
+  var additionalArgs = _.tail(arguments);
+  this.$$fireEventOnScope(eventName, additionalArgs);
+  return this.$$fireEventOnScope(eventName, additionalArgs);
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
+};
+
+Scope.prototype.$$fireEventOnScope = function(eventName, listenerArgs) {
   var listeners = this.$$listeners[eventName] || [];
+<<<<<<< HEAD
+  var i = 0;
+  while (i < listeners.length) {
+    if (listeners[i] === null) {
+      listeners.splice(i, 1);
+    } else {
+      // listeners[i].apply(this, listenerArgs);
+      listeners[i].apply(null, listenerArgs);
+      i++;
+    }
+  }
+=======
   _.forEach(listeners, function(listener) {
-    listener();
+    listener.apply(null, listenerArgs);
   });
+  return event;
+>>>>>>> 70fe830e732cc72cca751d5b7af6324ffd61f14a
 };
 
 module.exports = Scope;
