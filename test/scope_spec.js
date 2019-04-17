@@ -1680,7 +1680,6 @@ describe('Scope', function() {
 
         it('returns the event object on '+method, function() {
           var returnedEvent = scope[method]('someEvent');
-          var returnedEvent =- scope[method]('someEvent');
 
           expect(returnedEvent).toBeDefined();
           expect(returnedEvent.name).toEqual('someEvent');

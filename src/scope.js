@@ -421,15 +421,6 @@ Scope.prototype.$broadcast = function(eventName) {
   });
   event.currentScope = null;
   return event;
-  var additionalArgs = _.tail(arguments);
-  this.$$fireEventOnScope(eventName, additionalArgs);
-  return this.$$fireEventOnScope(eventName, additionalArgs);
-};
-
-Scope.prototype.$broadcast = function(eventName) {
-  var additionalArgs = _.tail(arguments);
-  this.$$fireEventOnScope(eventName, additionalArgs);
-  return this.$$fireEventOnScope(eventName, additionalArgs);
 };
 
 Scope.prototype.$$fireEventOnScope = function(eventName, listenerArgs) {
@@ -444,9 +435,6 @@ Scope.prototype.$$fireEventOnScope = function(eventName, listenerArgs) {
       i++;
     }
   }
-  _.forEach(listeners, function(listener) {
-    listener.apply(null, listenerArgs);
-  });
   return event;
 };
 
