@@ -1896,7 +1896,7 @@ describe('Scope', function() {
 
     it('fires $destroy on children destroyed', function() {
       var listener = jasmine.createSpy();
-      child.$on('destroy', listener);
+      child.$on('$destroy', listener);
 
       scope.$destroy();
 
