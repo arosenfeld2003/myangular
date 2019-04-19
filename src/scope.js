@@ -293,6 +293,7 @@ Scope.prototype.$destroy = function() {
     }
   }
   this.$$watchers = null;
+  this.$$listeners = {};
 };
 
 Scope.prototype.$watchCollection = function(watchFn, listenerFn) {

@@ -1903,6 +1903,16 @@ describe('Scope', function() {
       expect(listener).toHaveBeenCalled();
     });
 
+    it('no longer calls listeners after destroyed', function() {
+      var listener = jasmine.createSpy();
+      scope.$on('myEvent', listener);
+
+      scope.$destroy();
+
+      scope.$emit('myEvent');
+      expect(listener).not.toHaveBeenCalled();
+    });
+
   });
 
 });
