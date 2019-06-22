@@ -13,6 +13,11 @@ function parse(expr) {
 function Lexer() {
 }
 
+Lexer.prototype.isWhitespace = function(ch) {
+  return ch === ' ' || ch === '\r' || ch === '\t' ||
+         ch === '\n' || ch === '\v' || ch === '\u00A0';
+};
+
 Lexer.prototype.lex = function(text) {
   this.text = text;
   this.index = 0;
@@ -26,7 +31,18 @@ Lexer.prototype.lex = function(text) {
       this.readNumber();
     } else if (this.ch === '\'' || this.ch === '"') {
       this.readString(this.ch);
-    } else {
+    } else if (this.ch === '[' || this.ch === ']' || this.ch === ',') {
+      this.tokens.push({
+        text: this.ch
+      });
+      this.index++;
+    }
+      else if (this.isIdent(this.ch)) {
+      this.readIdent();
+    } else if (this.isWhitespace(this.ch)) {
+      this.index++;
+    }
+      else {
       throw 'Unexpected next character: ' + this.ch;
     }
   }
@@ -117,21 +133,59 @@ Lexer.prototype.isExpOperator = function(ch) {
   return ch === '-' || ch === '+' || this.isNumber(ch);
 };
 
+Lexer.prototype.isIdent = function(ch) {
+  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+    ch === '_' || ch === '$';
+};
+
+Lexer.prototype.readIdent = function() {
+  var text = '';
+  while (this.index < this.text.length) {
+    var ch = this.text.charAt(this.index);
+    if (this.isIdent(ch) || this.isNumber(ch)) {
+      text += ch;
+    } else {
+      break;
+    }
+    this.index++;
+  }
+
+  var token = { text: text };
+
+  this.tokens.push(token);
+};
+
 function AST(lexer) {
   this.lexer = lexer;
 }
 AST.Program = 'Program';
 AST.Literal = 'Literal';
+AST.ArrayExpression = 'ArrayExpression';
 
 AST.prototype.ast = function(text) {
   this.tokens = this.lexer.lex(text);
   return this.program();
 };
 AST.prototype.program = function() {
-  return { type: AST.Program, body: this.constant() };
+  return { type: AST.Program, body: this.primary() };
+};
+AST.prototype.primary = function() {
+  if (this.expect('[')) {
+    return this.arrayDeclaration();
+  } else if (this.constants.hasOwnProperty(this.tokens[0].text)) {
+    return this.constants[this.consume().text];
+  } else {
+    return this.constant();
+  }
 };
 AST.prototype.constant = function() {
-  return { type: AST.Literal, value: this.tokens[0].value };
+  return { type: AST.Literal, value: this.consume().value };
+};
+
+AST.prototype.constants = {
+  'null': { type: AST.Literal, value: null },
+  'true': { type: AST.Literal, value: true },
+  'false': { type: AST.Literal, value: false }
 };
 
 function ASTCompiler(astBuilder) {
@@ -146,25 +200,76 @@ ASTCompiler.prototype.compile = function(text) {
   return new Function(this.state.body.join(''));
   /* jshint +W054 */
 };
+
 ASTCompiler.prototype.recurse = function(ast) {
   switch(ast.type) {
-    case AST.Program:
-      this.state.body.push('return ', this.recurse(ast.body), ';');
-      break;
-    case AST.Literal:
-      return this.escape(ast.value);
+  case AST.Program:
+    this.state.body.push('return ', this.recurse(ast.body), ';');
+    break;
+  case AST.Literal:
+    return this.escape(ast.value);
+  case AST.ArrayExpression:
+    // 6/22: Run this through debugger.
+    var elements = _.map(ast.elements, _.bind(function(element) {
+      return this.recurse(element);
+    }, this));
+    return '[' + elements.join(',') + ']';
   }
 };
+
 ASTCompiler.prototype.escape = function(value) {
   if(_.isString(value)) {
-    return '\'' + value.replace(this.stringEscapeRegex, this.stringEscapeFn) + '\'';
+    return '\'' +
+      value.replace(this.stringEscapeRegex, this.stringEscapeFn) +
+      '\'';
+  } else if (_.isNull(value)) {
+    return 'null';
   } else {
     return value;
   }
 };
+
 ASTCompiler.prototype.stringEscapeRegex = /[^ a-zA-Z0-9]/g;
 ASTCompiler.prototype.stringEscapeFn = function(c) {
   return '\\u' + ('0000' + c.charCodeAt(0).toString(16)).slice(-4);
+};
+
+AST.prototype.expect = function(e) {
+  var token = this.peek(e);
+  if (token) {
+    return this.tokens.shift();
+  }
+};
+
+AST.prototype.arrayDeclaration = function() {
+  var elements = [];
+  if (!this.peek(']')) {
+    do {
+      elements.push(this.primary());
+    } while (this.expect(','));
+  }
+  this.consume(']');
+  return { type: AST.ArrayExpression, elements: elements };
+};
+
+AST.prototype.peek = function(e) {
+  if (this.tokens.length > 0) {
+    // error here?  text undefined
+    // unexpected console behavior... async issue?
+    var text = this.tokens[0].txt;
+    // What's the purpose of 'or' sttatment: `` || !e `` ??
+    if (text === e || !e) {
+      return this.tokens[0];
+    }
+  }
+};
+
+AST.prototype.consume = function(e) {
+  var token = this.expect(e);
+  if(!token) {
+    throw 'Unexpected. Expecting: ' + e;
+  }
+  return token;
 };
 
 function Parser(lexer) {
