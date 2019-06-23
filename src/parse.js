@@ -180,6 +180,9 @@ AST.prototype.arrayDeclaration = function() {
   var elements = [];
   if (!this.peek(']')) {
     do {
+      if (this.peek(']')) {
+        break;
+      }
       elements.push(this.primary());
     } while (this.expect(','));
   }
@@ -200,10 +203,7 @@ AST.prototype.expect = function(e) {
 
 AST.prototype.peek = function(e) {
   if (this.tokens.length > 0) {
-    // error here?  text undefined
-    // unexpected console behavior... async issue?
     var text = this.tokens[0].text;
-    // What's the purpose of 'or' sttatment: `` || !e `` ??
     if (text === e || !e) {
       return this.tokens[0];
     }
