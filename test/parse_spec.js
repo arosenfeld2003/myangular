@@ -141,4 +141,64 @@ describe('parse', function() {
     expect(fn()).toBeUndefined();
   });
 
+  it('will parse this', function() {
+    var fn = parse('this');
+    var scope = {};
+    expect(fn(scope)).toBe(scope);
+    expect(fn()).toBeUndefined();
+  });
+
+  it('looks up a 2-part identifier path from the scope', function() {
+    var fn = parse('aKey.anotherKey');
+    expect(fn({ aKey: { anotherKey: 42 } })).toBe(42);
+    expect(fn({ aKey: {} })).toBeUndefined();
+    expect(fn({})).toBeUndefined();
+  });
+
+  it('looks up a member from an object', function() {
+    var fn = parse('{ aKey: 42 }.aKey');
+    expect(fn()).toBe(42);
+  });
+
+  it('looks up a 4-part identifier path from the scope', function() {
+    var fn = parse('aKey.secondKey.thirdKey.fourthKey');
+    expect(fn({ aKey: { secondKey: { thirdKey: { fourthKey: 42 }}}})).toBe(42);
+    expect(fn({ aKey: { secondKey: { thirdKey: { }}}})).toBeUndefined();
+    expect(fn()).toBeUndefined();
+  });
+
+  it('uses locals instead of scope when there is a matching key', function() {
+    var fn = parse('aKey');
+    var scope = { aKey: 42 };
+    var locals = { aKey: 43 };
+    expect(fn(scope, locals)).toBe(43);
+  });
+
+  it('does not use locals instead of scope when there is no matching key', function() {
+    var fn = parse('aKey');
+    var scope = { aKey: 42 };
+    var locals = { otherKey: 43 };
+    expect(fn(scope, locals)).toBe(42);
+  });
+
+  it('uses locals instead of scope when the first part matches', function() {
+    var fn = parse('aKey.anotherKey');
+    var scope = { aKey: { anotherKey: 42 }};
+    var locals = { aKey: {} };
+    expect(fn(scope, locals)).toBeUndefined();
+  });
+
+  it('will parse $locals', function() {
+    var fn = parse('$locals');
+    var scope = {};
+    var locals = {};
+    expect(fn(scope, locals)).toBe(locals);
+    expect(fn(scope)).toBeUndefined();
+
+    fn = parse('$locals.aKey');
+    scope = { aKey: 42 };
+    locals = { aKey: 43 };
+    expect(fn(scope, locals)).toBe(43);
+  });
+
 });
