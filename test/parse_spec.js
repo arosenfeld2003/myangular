@@ -2,6 +2,7 @@
 
 var _ = require('lodash');
 var parse = require('../src/parse');
+var register = require('../src/filter').register;
 
 describe('parse', function() {
   it('can parse an integer', function() {
@@ -574,7 +575,7 @@ describe('parse', function() {
 
   it('short-circuits AND', function() {
     var invoked;
-    var scope = {fn: function() { inbvoked = true; }};
+    var scope = {fn: function() { invoked = true; }};
 
     parse('false && fn()')(scope);
     expect(invoked).toBeUndefined();
@@ -593,6 +594,66 @@ describe('parse', function() {
 
   it('parses OR with a lower precedence than equality', function() {
     expect(parse('1 === 2 || 2 === 2')()).toBeTruthy();
+  });
+
+  it('parses the ternary expression', function() {
+    expect(parse('a === 42 ? true : false')({a: 42})).toBe(true);
+    expect(parse('a === 42 ? true : false')({a: 43})).toBe(false);
+  });
+
+  it('parses OR with a higher precedence than ternary', function() {
+    expect(parse('0 || 1 ? 0 || 2 : 0 || 3')()).toBe(2);
+  });
+
+  it('parses nested ternaries', function() {
+    expect(
+      parse('a === 42 ? b === 42 ? "a and b" : "a" : c === 42 ? "c" : "none"')({
+        a: 44,
+        b: 43,
+        c: 42
+      })).toEqual('c');
+  });
+
+  it('parses parentheses altering precedence order', function() {
+    expect(parse('21 * (3 - 1)')()).toBe(42);
+    expect(parse('false && (true || true)')()).toBe(false);
+    expect(parse('-((a % 2) === 0 ? 1 : 2)')({a: 42})).toBe(-1);
+  });
+
+  it('parses several statements', function() {
+    var fn = parse('a = 1; b = 2; c = 3');
+    var scope = {};
+    fn(scope);
+    expect(scope).toEqual({a: 1, b: 2, c: 3});
+  });
+
+  it('returns the value of the last statement', function() {
+    expect(parse('a = 1; b = 2; a+ b')({})).toBe(3);
+  });
+
+  it('can parse filter expressions', function() {
+    register('upcase', function() {
+      return function(str) {
+        return str.toUpperCase();
+      };
+    });
+    var fn = parse('aString | upcase');
+    expect(fn({aString: 'Hello'})).toEqual('HELLO');
+  });
+
+  it('can parse filter chain expressions', function() {
+    register('upcase', function() {
+      return function(s) {
+        return s.toUpperCase();
+      };
+    });
+    register('exclamate', function() {
+      return function(s) {
+        return s + '!';
+      };
+    });
+    var fn = parse('"hello" | upcase | exclamate');
+    expect(fn()).toEqual('HELLO!');
   });
 
 });
